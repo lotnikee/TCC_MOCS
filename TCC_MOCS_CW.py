@@ -1,89 +1,79 @@
 import numpy as np 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
 
 ### Define parameters
-m = 1.0 
-k = 1.0 
-T = 10.0
+m = 1.0
+k = 1.0
+T = 10.0 
+delta_t = 0.01
+n_steps = int(T / delta_t)
+time = np.linspace(0, T, n_steps)
 
-### Define different time step values 
-dt_values = np.logspace(-3, 0, 10)
+### Define time step values, equispaced from 0.001 to 1.0
+dt = np.logspace(-3, 0, 10)
+
+### Create an empty list to store energy values 
+energy_values = []
 delta_E_values = []
 
-### Loop over different timesteps 
-for dt in dt_values:
-    n_steps = int(T / dt)
+### Set initial arrays to 0 
+x = np.zeros(n_steps)
+v = np.zeros(n_steps)
+a = np.zeros(n_steps)
+K = np.zeros(n_steps)
+U = np.zeros(n_steps)
+E = np.zeros(n_steps)
 
-    x = np.zeros(n_steps)
-    v = np.zeros(n_steps)
-    a = np.zeros(n_steps)
-    E = np.zeros(n_steps)
+### Set initial conditions 
+x[0] = 1.0
+v[0] = 0.0 
+a[0] = - (k / m) * x[0]
 
-    ### List to store time, position and velocity data 
-    trajectory = []
-    energy = []
-    delta_energy = []
+### Compute initial energies
+K[0] = 0.5 * m * v[0] ** 2
+U[0] = 0.5 * k * x[0] ** 2
+E[0] = K[0] + U[0]
 
-    ### Initial conditions 
-    x[0] = 1.0
-    v[0] = 0.0
-    a[0] = - (k/m) * x[0]
+### Velocity Verlet Algorithm to compute the energy deviation
+for i in range(n_steps - 1):
+    x[i + 1] = x[i] + v[i] * delta_t + (0.5 * a[i] * delta_t ** 2)
+    a[i + 1] = - (k / m) * x[i + 1]
+    v[i + 1] = v[i] + 0.5 * (a[i] + a[i + 1]) * delta_t
 
-    ### Include energy components
-    K0 = 0.5 * m * v[0]**2
-    U0 = 0.5 * m * x[0]**2
-    E[0] = K0 + U0
-    E0 = E[0]
+### Compute new energies 
+K = 0.5 * m * v ** 2
+U = 0.5 * k * x ** 2
+E = K + U
 
-    ### Store intial conditions
-    trajectory.append((x[0], v[0], E[0]))
-    energy.append(E[0])
+### Take the average change in energy 
+delta_E = np.mean(np.abs((E - E[0]) / E[0]))
+energy_values.append(delta_E)
 
-    ### Velocity Verlet Algorithm integration
-    for i in range(n_steps - 1):
-   
-        ### Update position 
-        x[i+1] = x[i] + v[i] * dt + (0.5 * a[i] * dt**2)
-   
-        ### Update acceleration 
-        a_new = - (k/m) * x[i+1]
+### Plotting everything in subplots 
+plt.figure(figsize=(12, 9))
 
-        ### Update velocity 
-        v[i+1] = v[i] + 0.5 * (a[i] + a_new) * dt
-
-        ### Store new acceleration 
-        a[i+1] = a_new
-
-        ### Update kinetic and potential energy
-        K = 0.5 * m * v[i+1]**2
-        U  = 0.5 * k * x[i+1]**2
-        E[i + 1] = K + U
-
-    ### Calculate energy differerence 
-    E_norm = np.abs((E[i+1] - E[0]) / E[0])
-
-    ### Calculate energy difference
-    delta_energy.append(E_norm)    
-
-    ### Store trajectory data
-    trajectory.append((x[i+1], v[i+1], E[i+1]))
-    energy.append(E[i+1])
-
-    ### Compute the final Delta E over the entire trajectory
-    delta_E = np.mean(delta_energy)
-
-### Log-Log Plot of Delta E vs Time Step
-plt.figure(figsize=(8, 5))
-plt.loglog(dt_values, delta_E_values, marker='o', linestyle='-', label=r'$\Delta E$')
-plt.xlabel(r'Time step $\delta t$')
-plt.ylabel(r'Energy deviation $\Delta E$')
-plt.title('Energy Conservation vs. Time Step')
+### Displacement plot
+plt.subplot(3, 1, 1)
+plt.plot(time, x, label='Displacement (x)', linestyle='-', color='blue')
+plt.title('Harmonic Oscillator Simulation')
+plt.ylabel('Displacement')
+plt.grid(True, linestyle="--", linewidth=0.5)
 plt.legend()
-plt.grid(True, which="both", linestyle="--", linewidth=0.5)
+
+### Velocity plot
+plt.subplot(3, 1, 2)
+plt.plot(time, v, label='Velocity (v)', linestyle='-', color='green')
+plt.ylabel('Velocity')
+plt.grid(True, linestyle="--", linewidth=0.5)
+plt.legend()
+
+### Energy fluctuation
+plt.subplot(3, 1, 3)
+plt.plot(time, E, label='Total Energy (E)', linestyle='-', color='orange')
+plt.xlabel('Time')
+plt.ylabel('Energy Fluctutation')
+plt.grid(True, linestyle="--", linewidth=0.5)
+plt.legend()
+
+plt.tight_layout()
 plt.show()
-
-### Print trajectory and energies
-print(trajectory)
-print(energy)
-print(delta_energy)
-
