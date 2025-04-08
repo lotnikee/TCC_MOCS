@@ -1,128 +1,68 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 
-### Define parameters 
+### Define parameters in atomic units where appropriate
 m = 1.0 
 k = 1.0 
-T = 10.0 
+T_period = 2 * np.pi * 5
 
-### Define time step values 
-dt_values = np.logspace(-3, 0, 10)  # Logarithmically spaced dt from 0.001 to 1.0
+### Define time step values, equispaced on a logarithmic scale
+dt_values = np.logspace(-3, 0, 10)
 
-### Create  an empty list to keep track of energy change values
-delta_E_values = []
+### Create an empty list to keep track of energy change value s
+dE_values = []
 
-### Loop values over different time steps 
+### Create a for loop to run simulation over the different time steps 
 for dt in dt_values:
-    n_steps = int(T / dt)
+    n_steps = int(T_period / dt)
 
-    ### Set initial arrays to 0
+    ### Set initial arrays to 0 
     x = np.zeros(n_steps)
-    v = np.zeros(n_steps)
     a = np.zeros(n_steps)
+    v = np.zeros(n_steps)
     K = np.zeros(n_steps)
     U = np.zeros(n_steps)
     E = np.zeros(n_steps)
 
     ### Set initial conditions 
     x[0] = 1.0
-    v[0] = 0.0
-    a[0] = - ( k / m) * x[0]
+    v[0] = 1.0
+    a[0] = - (k / m) * x[0]
 
-    ### Compute initial energies 
-    K[0] = 0.5 * m * v[0] ** 2
-    U[0] = 0.5 * k * x[0] ** 2
+    ### Compute intial energies 
+    K[0] = 0.5 * m * v[0]**2
+    U[0] = 0.5 * k * x[0]**2
     E[0] = K[0] + U[0]
 
-    ### Velocity Verlet Algorithm
+    ### Incorporate a Velocity-Verlet Algorithm 
     for i in range(n_steps - 1):
-        x[i+1] = x[i] + v[i]*dt + (0.5 * a[i] *dt ** 2)
-        a[i+1] = - (k / m) * x[i+1]
-        v[i+1] = v[i] + 0.5 * (a[i] + a[i+1]) * dt
+        ### Update position, velocity and acceleration 
+        x[i+1] = x[i] + v[i] * dt + (0.5 * a[i] * dt**2)
+        a[i + 1] = - (k / m) * x[i + 1]
+        v[i + 1] = v[i] + (0.5 * dt * (a[i] + a[i + 1]))
 
-        ### Compute new energies  
-        K[i+1] = 0.5 * m * v[i+1] ** 2
-        U[i+1] = 0.5 * k * x[i+1] ** 2
-        E[i+1] = K[i+1] + U[i+1]
+        ### Compute the updated energies 
+        K[i + 1] = 0.5 * m * v[i + 1]**2
+        U[i + 1] = 0.5 * k * x[i + 1]**2
+        E[i + 1] = K[i + 1] + U[i + 1]
+        
+    dE = (1 / n_steps) * np.sum(np.abs((E - E[0]) / E[0]))
+    dE_values.append(dE)
 
-    ### Take the average change in energy 
-    delta_E = np.mean(np.abs((E - E[0]) / E[0]))
-    delta_E_values.append(delta_E)
+# Fit log-log slope
+log_dt = np.log10(dt_values)
+log_dE = np.log10(dE_values)
+slope, intercept = np.polyfit(log_dt, log_dE, 1)
+
+# Print the slope (scaling exponent)
+print(f"Estimated scaling exponent: {slope:.4f}")
 
 ### Log-log plot of energy change 
 plt.figure(figsize=(8, 5))
-plt.loglog(dt_values, delta_E_values, linestyle='-', label=r'$\Delta E$')
+plt.loglog(dt_values, dE_values, linestyle='-')
 plt.xlabel(r'Time step $\delta t$')
-plt.ylabel(r'Energy deviation $\Delta E$')
-plt.title('Energy Conservation vs. Time Step')
-plt.legend()
+plt.ylabel(r'Average relative energy deviation $\Delta E$')
+plt.title('Average Energy Deviation vs. Time Step (Velocity-Verlet)')
+plt.text(dt_values[5], dE_values[7], f"Slope ≈ {slope:.4f}", fontsize=10)
 plt.grid(True, linestyle="--", linewidth=0.5)
 plt.show()
-
-### Second set of parameters to check displacement and velocity behaviour 
-delta_t = 0.01
-n_steps = int(T / delta_t)
-time = np.linspace(0, T, n_steps)
-
-### Set initial arrays back to 0
-x = np.zeros(n_steps)
-v = np.zeros(n_steps)
-a = np.zeros(n_steps)
-K = np.zeros(n_steps)
-U = np.zeros(n_steps)
-E = np.zeros(n_steps)
-
-### Set initial conditions 
-x[0] = 1.0
-v[0] = 0.0
-a[0] = - ( k / m) * x[0]
-
-### Compute initial energies 
-K[0] = 0.5 * m * v[0] ** 2
-U[0] = 0.5 * k * x[0] ** 2
-E[0] = K[0] + U[0]
-
-### Velocity Verlet Algorithm
-for i in range(n_steps - 1):
-    x[i+1] = x[i] + v[i]*delta_t + (0.5 * a[i] *delta_t ** 2)
-    a[i+1] = - (k / m) * x[i+1]
-    v[i+1] = v[i] + 0.5 * (a[i] + a[i+1]) * delta_t
-
-### Compute new energies  
-K = 0.5 * m * v ** 2
-U = 0.5 * k * x ** 2
-E = K + U
-
-### Take the average change in energy 
-delta_E = np.mean(np.abs((E - E[0]) / E[0]))
-delta_E_values.append(delta_E)
-
-### Plotting everything in subplots 
-plt.figure(figsize=(12, 9))
-
-### Displacement plot
-plt.subplot(3, 1, 1)
-plt.plot(time, x, label='Displacement (x)', linestyle='-', color='blue')
-plt.title('Harmonic Oscillator Simulation')
-plt.ylabel('Displacement')
-plt.grid(True, linestyle="--", linewidth=0.5)
-plt.legend()
-
-### Velocity plot
-plt.subplot(3, 1, 2)
-plt.plot(time, v, label='Velocity (v)', linestyle='-', color='green')
-plt.ylabel('Velocity')
-plt.grid(True, linestyle="--", linewidth=0.5)
-plt.legend()
-
-### Energy fluctuation
-plt.subplot(3, 1, 3)
-plt.plot(time, E, label='Total Energy (E)', linestyle='-', color='orange')
-plt.xlabel('Time')
-plt.ylabel('Energy Fluctutation')
-plt.grid(True, linestyle="--", linewidth=0.5)
-plt.legend()
-
-plt.tight_layout()
-plt.show()
-
