@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import random 
 
-random.seed(42)
-np.random.seed(42)
 
 ### Set-up and parameters
 k = 1.0 
