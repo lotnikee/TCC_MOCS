@@ -2,52 +2,61 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import random 
 
-### Define 1D Harmonic Oscillator constants in atomic units 
-### Working in a Metropolis Monte Carlo simulation, so E = P.E.
+random.seed(42)
+np.random.seed(42)
+
+### Set-up and parameters
 k = 1.0 
 beta = 1.0
+N_steps = 10**6
+equilibration_steps = N_steps // 2
+production_steps = N_steps // 2
 
-### Determine the initial position of x by generating a random number between [0, 1)
-random_x = random.random()
-print(f"x = ", random_x)
+### Initial conditions
+accepted_x = []
+current_x = random.random()
 
-### Define the displacement parameters 
-delta = random.uniform(-2, 2)
-print(f"Delta = ", delta)
+def potential_energy(x, k):
+    return 0.5 * k * x**2
 
-delta_x = random_x + delta
-print(f"x_1 = ", delta_x)
+### Metropolis MC loop
+for step in range(1, N_steps + 1):
 
-if 0 <= delta_x <= 1:
-    ### Calculate the energy E(x)
-    E_x = 0.5 * k * random_x**2
-    print(f"Energy E(x) = ", E_x)
+    ### Define the displacement parameters 
+    delta = random.uniform(-0.1, 0.1)
+    proposed_x = current_x + delta
 
-    ### Calcualte the energy E(x')
-    E_x_new = 0.5 * k * delta_x**2
-    print(f"Energy E(x') = ", E_x_new)
+    ### Determine whether or not the new position falls within the boundary conditions
+    if 0 <= proposed_x <= 1:
 
-    ### Determine π(x) and π(x')
-    π_x = np.exp(- beta * E_x)
-    π_x_new = np.exp(- beta * E_x_new)
+        ### Calculate the energy E(x)
+        E_x = potential_energy(current_x, k)
 
-    ### Determine the ratio between π(x) and π(x')
-    ratio = π_x_new / π_x
-    print(f"Probability is:", ratio)
+        ### Calculate the energy E(x')
+        E_x_new = potential_energy(proposed_x, k)
 
-    ### Define the acceptance criterion 
-    A = min(1, ratio)
+        ### Determine π(x) and π(x')
+        π_x = np.exp(- beta * E_x)
+        π_x_new = np.exp(- beta * E_x_new)
 
-    if 0 <= A <= 1: 
-        print(True)
-    else: 
-        print(False)
-else:
-    print(False)
+        ### Determine the ratio between π(x) and π(x')
+        ratio = π_x_new / π_x
 
+        ### Define the acceptance criterion 
+        A = min(1, ratio)
+        current_x = proposed_x
+        if step > equilibration_steps:
+            accepted_x.append(current_x)
 
+### Metropolis MC Processing by plotting accepted states
+plt.figure()
+plt.hist(accepted_x, bins=200, edgecolor='black') 
+plt.title("Histogram of accepted x' values ")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.show()
 
-
-
+### Determine the average proposed_x value 
+print(np.mean(accepted_x))
 
 
