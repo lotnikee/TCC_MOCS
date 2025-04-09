@@ -25,10 +25,8 @@ for step in range(1, N_steps + 1):
     proposed_x = current_x * phi
 
     ### Determine whether or not the new position falls within the boundary conditions
-    if 1.0e-3 < proposed_x < 1.0:
-        A = min(1.0, 1.0 / (phi**2))
-        if random.random() < A:
-            current_x = proposed_x
+    if 0 <= proposed_x <= 1:
+        current_x = proposed_x
 
     ### If the simulation is in its production phase, keep track of accepted values for x and append the list
         if step > equilibration_steps:
