@@ -16,7 +16,8 @@ L = 50
 lattice_L  = np.zeros((L, L), dtype=int)
 
 ### Set up the iteration steps for the Metropolis Monte Carlo simulation
-N_steps = 10**4
+N_steps = 10**6
+
 equilibration_phase = N_steps // 2
 production_phase = N_steps // 2
 
@@ -119,4 +120,8 @@ plt.ylabel("Magnetic Susceptibility per Spin, C")
 plt.title("Magnetic Susceptibility vs. Temperature")
 plt.xscale("log")
 plt.grid(True, linestyle="--", linewidth=0.5)
+plt.show()
+
+
+plt.imshow(lattice_L)
 plt.show()
