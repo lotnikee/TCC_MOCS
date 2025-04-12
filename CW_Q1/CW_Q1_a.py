@@ -54,9 +54,6 @@ log_dt = np.log10(dt_values)
 log_dE = np.log10(dE_values)
 slope, intercept = np.polyfit(log_dt, log_dE, 1)
 
-# Print the slope (scaling exponent)
-print(f"Estimated scaling exponent: {slope:.4f}")
-
 ### Log-log plot of energy change 
 plt.figure(figsize=(8, 5))
 plt.loglog(dt_values, dE_values, linestyle='-')
