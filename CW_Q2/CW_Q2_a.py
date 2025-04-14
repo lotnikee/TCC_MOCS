@@ -4,29 +4,29 @@ import random
 
 ### Set up the iteration steps for the Metropolis Monte Carlo simulation and delta constant 
 delta = 0.1
-N_steps = 10**7
-equilibration_steps = N_steps // 2         
-production_steps = N_steps // 2             
+t = 10**7
+equilibration_steps = t // 2         
+production_steps = t // 2             
 
 ### Set up an empty list to keep track of x values that have been accepted by the algorithm
 accepted_x = []
 
 ### Assign an initial value to x 
-current_x = random.random()
+x_0 = random.random()
 
 ### Run a short Metropolis Monte Carlo simulation
-for step in range(1, N_steps + 1):
+for step in range(0, t + 1):
 
     ### Define the displacement parameters 
-    proposed_x = current_x + random.uniform(-delta, delta)
+    proposed_x = x_0 + random.uniform(-delta, delta)
 
     ### Determine whether or not the new position falls within the boundary conditions
     if 0 <= proposed_x <= 1:
-        current_x = proposed_x
+        x_0 = proposed_x
     
     ### If the simulation is in its production phase, keep track of accepted values for x and append the list
     if step > equilibration_steps:
-        accepted_x.append(current_x)
+        accepted_x.append(x_0)
 
 ### Determine the average proposed_x value 
 print(np.mean(accepted_x))
