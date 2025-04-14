@@ -16,7 +16,7 @@ production_steps = t // 2
 accepted_x = []
 
 ### Assign an initial value to x 
-x_0 = random.random()
+current_x = random.random()
 
 ### Run a short Metropolis Monte Carlo simulation
 for step in range(0, t + 1):
@@ -26,15 +26,15 @@ for step in range(0, t + 1):
         phi = random.uniform(1, 1 + delta)
     else: 
         phi = random.uniform(1/(1 + delta), 1)
-    proposed_x = x_0 * phi
+    proposed_x = current_x * phi
 
     ### Determine whether or not the new position falls within the boundary conditions
     if 0 <= proposed_x <= 1:
-        x_0 = proposed_x
+        current_x = proposed_x
 
     ### If the simulation is in its production phase, keep track of accepted values for x and append the list
         if step > equilibration_steps:
-            accepted_x.append(x_0)
+            accepted_x.append(current_x)
 
 ### Determine the average proposed_x value 
 print(np.mean(accepted_x))
