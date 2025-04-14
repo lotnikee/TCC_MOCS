@@ -18,8 +18,8 @@ U = np.zeros(n_steps)
 E = np.zeros(n_steps)
 
 ### Define initial conditions 
-x[0] = 1.0
-v[0] = 1.0
+x[0] = 1e-4
+v[0] = 1e-4
 a[0] = - (k / m) * x[0]
 
 ### Compute intial kinetic, potential and total energy
@@ -39,13 +39,13 @@ for i in range(n_steps - 1):
         E[i + 1] = K[i + 1] + U[i + 1]
 
 ### Create three subplots
-fig, axs = plt.subplots(2, 2, figsize=(10, 8))
+fig, axs = plt.subplots(2, 2, figsize=(12, 8))
 
 ### First subplot
 axs[0, 0].plot(t, E)
 axs[0, 0].set_title(f"Total Energy vs Time (dt = {dt})")
 axs[0, 0].set_xlabel("Time")
-axs[0, 0].set_ylabel("Energy")
+axs[0, 0].set_ylabel("E(t) - E(0)")
 axs[0, 0].axhline(E[0], color='green', linestyle='--', linewidth=1)
 axs[0, 0].grid(True)
 
@@ -58,20 +58,21 @@ axs[0, 1].grid(True)
 axs[0, 1].axis("equal")
 
 ### Third subplot
-axs[1, 0].plot(t, E)
-axs[1, 0].set_title(f"Total Energy (Zoomed In, dt = {dt})")
+axs[1, 0].plot(t, E - E[0])
+axs[1, 0].set_title("Zoomed-In Energy Deviation vs Time")
 axs[1, 0].set_xlabel("Time")
-axs[1, 0].set_ylabel("Energy")
-axs[1, 0].axhline(E[0], color='green', linestyle='--', linewidth=1)
-axs[1, 0].set_ylim(0.999999, 1.000001)
+axs[1, 0].set_ylabel("E(t) - E(0)")
+axs[1, 0].set_ylim(-1e-14, 1e-14)
+axs[1, 0].axhline(0, color='gray', linestyle='--', linewidth=1)
 axs[1, 0].grid(True)
 
 ### Fourth subplot
-axs[1, 1].plot(t, E)
-axs[1, 1].set_title(f"Total Energy (Zoomed In, dt = {dt})")
+axs[1, 1].plot(t, E - E[0])
+axs[1, 1].set_title("Zoomed-In Energy Deviation vs Time")
 axs[1, 1].set_xlabel("Time")
-axs[1, 1].set_ylabel("Energy")
-axs[1, 1].set_ylim(0.999, 1.001)
+axs[1, 1].set_ylabel("E(t) - E(0)")
+axs[1, 1].set_ylim(-1e-13, 1e-13)
+axs[1, 1].axhline(0, color='gray', linestyle='--', linewidth=1)
 axs[1, 1].grid(True)
 
 plt.tight_layout()
