@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 ### Define parameters in atomic units where appropriate
-m = 1.0 
-k = 1.0 
+m = 1.0
+k = 1.0
 T_period = 2 * np.pi * 5
 
 ### Define time step values, equispaced on a logarithmic scale
@@ -25,8 +25,8 @@ for dt in dt_values:
     E = np.zeros(n_steps)
 
     ### Set initial conditions 
-    x[0] = 1.0
-    v[0] = 1.0
+    x[0] = 1e-5
+    v[0] = 1e-5
     a[0] = - (k / m) * x[0]
 
     ### Compute intial energies 
@@ -60,6 +60,6 @@ plt.loglog(dt_values, dE_values, linestyle='-')
 plt.xlabel(r'Time step $\delta t$')
 plt.ylabel(r'Average relative energy deviation $\Delta E$')
 plt.title('Average Energy Deviation vs. Time Step (Velocity-Verlet)')
-plt.text(dt_values[5], dE_values[7], f"Slope ≈ {slope:.4f}", fontsize=10)
+plt.text(dt_values[5], dE_values[7], f"Slope ≈ {slope:.6f}", fontsize=10)
 plt.grid(True, linestyle="--", linewidth=0.5)
 plt.show()
