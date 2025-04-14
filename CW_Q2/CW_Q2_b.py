@@ -2,6 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import random 
 
+### Include random seeds for reproducibility 
+random.seed(13)
+np.random.seed(13)
+
 ### Set up the iteration steps for the Metropolis Monte Carlo simulation and delta constant 
 delta = 0.1
 t = 10**7
@@ -44,7 +48,5 @@ plt.title("Distribution of Sampled 'x' Values")
 plt.xlabel("Value")
 plt.ylabel("Frequency")
 plt.show()
-
-
 
 
