@@ -17,6 +17,7 @@ accepted_x = []
 
 ### Assign an initial value to x 
 current_x = random.random()
+accepted = 0
 
 ### Run a short Metropolis Monte Carlo simulation
 for step in range(0, t + 1):
@@ -31,6 +32,8 @@ for step in range(0, t + 1):
     ### Determine whether or not the new position falls within the boundary conditions
     if 0 <= proposed_x <= 1:
         current_x = proposed_x
+        if step > equilibration_steps:
+            accepted += 1
 
     ### If the simulation is in its production phase, keep track of accepted values for x and append the list
         if step > equilibration_steps:
@@ -38,6 +41,9 @@ for step in range(0, t + 1):
 
 ### Determine the average proposed_x value 
 print(np.mean(accepted_x))
+
+### Print acceptance rate
+print("Acceptance rate:", accepted / production_steps)
 
 ### Plot a histogram of all the accepted values to show uniformity
 plt.figure()
