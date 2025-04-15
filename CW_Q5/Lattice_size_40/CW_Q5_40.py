@@ -2,22 +2,25 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import random 
 
-### Define some constants 
+### Random seeds for reproducibility
+random.seed(13)
+np.random.seed(13)
+
+### Define a range of temperatures
 T_values = np.linspace(1.5, 3.5, 100)
 
-### Include an empty list to store energy values 
+### Include empty lists to store values
 energy_values = []
 magnetisation_values = []
 heat_capacity = []
 magnetic_susceptibility = []
 
 ### Build the lattice 
-L = 50
+L = 40
 lattice_L  = np.zeros((L, L), dtype=int)
 
 ### Set up the iteration steps for the Metropolis Monte Carlo simulation
 N_steps = 10**6
-
 equilibration_phase = N_steps // 2
 production_phase = N_steps // 2
 
@@ -40,9 +43,9 @@ for T in T_values:
         return energy_j
     
     ### Keep track of the different values 
+    E_j = calculate_energy(lattice_L)
     energy_list_T = []
     magnetisation_list_T = []
-    E_j = calculate_energy(lattice_L)
 
     ### Start the Metropolis MC simulation
     for step in range(1, N_steps + 1): 
@@ -99,8 +102,8 @@ plt.show()
 plt.figure()
 plt.plot(T_values, magnetisation_values, linestyle='-')
 plt.xlabel("Temperature, T")
-plt.ylabel("Average Magnetization per Spin ⟨|M|⟩")
-plt.title("Magnetization vs. Temperature")
+plt.ylabel("Average Magnetisation per Spin ⟨|M|⟩")
+plt.title("Magnetisation vs. Temperature")
 plt.grid(True, linestyle="--", linewidth=0.5)
 plt.show()
 
@@ -122,6 +125,3 @@ plt.xscale("log")
 plt.grid(True, linestyle="--", linewidth=0.5)
 plt.show()
 
-
-plt.imshow(lattice_L)
-plt.show()

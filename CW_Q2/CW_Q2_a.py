@@ -48,6 +48,3 @@ plt.title("Distribution of Sampled 'x' Values ")
 plt.xlabel("Value")
 plt.ylabel("Frequency")
 plt.show()
-
-
-
