@@ -1,6 +1,7 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
 import random 
+from tqdm import tqdm 
 
 ### Simulation parameters
 lattice_sizes = [20, 40, 60]
@@ -8,15 +9,12 @@ T_values = np.linspace(1.5, 3.5, 100)
 MC_steps = 5000
 equilibration_steps = 1000
 random_seed = 13
+n_runs = 2
 
 ### Define a simulation function 
-def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13):
-    random.seed(seed)
-    np.random.seed(seed)
-
-    ### Set up the number of Monte Carlo steps
-    N_steps = (MC_steps + equilibration_steps) * L * L 
+def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1):
     sample_interval = L * L
+    N = L * L
 
     ### Create empty lists to store observable values 
     energy_values = []
@@ -24,65 +22,79 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13):
     heat_capacity = []
     magnetic_susceptibility = []
 
-    ### Build and initialise the lattice 
-    lattice_L = np.zeros((L, L), dtype=int)
-
+    ### Define calculation of the lattice energy, avoiding double counting
     def calculate_energy(lattice_L):
         energy_j = 0
         for i in range(L):
             for j in range(L):
                 S = lattice_L[i, j]
                 right = lattice_L[i, (j + 1) % L]
-                down = lattice_L[(i + 1) % L, j]
-                energy_j += S * (right + down)
+                bottom = lattice_L[(i + 1) % L, j]
+                energy_j += -S * (right + bottom)
         return energy_j
     
-    for T in T_values:
-        ### Initialise random spin configuration on the lattice
-        init_random = np.random.random((L, L))
-        lattice_L[init_random >= 0.5] = 1
-        lattice_L[init_random < 0.5] = -1
+    ### Code a progress bar per temperature value to estimate how long the simulation is going to take
+    for T in tqdm(T_values, desc=f"Simulating L = {L}", leave=False):
+        E_T_runs , M_T_runs, E2_T_runs, M2_T_runs = [], [], [], []
 
-        E_j = calculate_energy(lattice_L)
-        energy_list_T = []
-        magnetisation_list_T = []
+        for run in range(n_runs):
+            run_seed = seed + run
+            random.seed(run_seed)
+            np.random.seed(run_seed)
 
-        for step in range(1, N_steps + 1):
-            i = random.randint(0, L - 1)
-            j = random.randint(0, L - 1)
-            current_state = lattice_L[i, j]
+            ### Initialise random spin configuration on the lattice
+            lattice_L = np.random.choice([-1, 1], size =(L, L))
+            E_j = calculate_energy(lattice_L)
 
-            top = lattice_L[(i - 1) % L, j]
-            bottom = lattice_L[(i + 1) % L, j]
-            right = lattice_L[i, (j-1) % L]
-            left = lattice_L[i, (j + 1) % L]
-            neighbour_sum = top + bottom + left + right
+            energy_list_T = []
+            magnetisation_list_T = []
 
-            delta_E_j = 2 * current_state * neighbour_sum
+            N_steps = (MC_steps + equilibration_steps) * N
 
-            if delta_E_j <= 0 or random.random() < np.exp(-delta_E_j / T):
-                lattice_L[i, j] += -1
-                E_j += delta_E_j
+            ### Build a random lattice 
+            for step in range(1, N_steps + 1):
+                i = random.randint(0, L - 1)
+                j = random.randint(0, L - 1)
+                current_state = lattice_L[i, j]
 
-            if step > (equilibration_steps * L * L) and step % sample_interval == 0:
-                energy_list_T.append(E_j)
-                M = np.sum(lattice_L)
-                magnetisation_list_T.append(np.abs(M))
+                ### Determine the lattice energy
+                top = lattice_L[(i - 1) % L, j]
+                bottom = lattice_L[(i + 1) % L, j]
+                right = lattice_L[i, (j - 1) % L]
+                left = lattice_L[i, (j + 1) % L]
+                neighbour_sum = top + bottom + left + right
+                delta_E_j = 2 * current_state * neighbour_sum
 
-        ### Normalise everything per spin 
-        N = L * L
-        energy_array = np.array(energy_list_T)
-        magnetisation_array = np.array(magnetisation_list_T)
+                ### If energy is negative or less than acceptance criterion, accept lattice and its energy
+                if delta_E_j <= 0 or random.random() < np.exp(-delta_E_j / T):
+                    lattice_L[i, j] *= -1
+                    E_j += delta_E_j
+
+                ### Only append lists when outside of equilibration steps
+                if step > (equilibration_steps * L * L) and step % sample_interval == 0:
+                    energy_list_T.append(E_j)
+                    M = np.sum(lattice_L)
+                    magnetisation_list_T.append(np.abs(M))
+
+            ### Normalise everything per spin 
+            energy_array = np.array(energy_list_T) / N
+            magnetisation_array = np.array(magnetisation_list_T) / N 
+
+            ### Append empty run lists with average energy and magnetisation normalised per spin
+            E_T_runs.append(np.mean(energy_array))
+            E2_T_runs.append(np.mean(energy_array ** 2))
+            M_T_runs.append(np.mean(magnetisation_array))
+            M2_T_runs.append(np.mean(magnetisation_array ** 2))
 
         ### Calculating energy and magnetisation values
-        E_mean = np.mean(energy_array) / N
-        E_squared_mean = np.mean(energy_array ** 2) / (N ** 2)
-        M_mean = np.mean(magnetisation_array) / N
-        M_squared_mean = np.mean(magnetisation_array ** 2) / (N ** 2)
+        E_mean = np.mean(E_T_runs)
+        E2_mean = np.mean(E2_T_runs)
+        M_mean = np.mean(M2_T_runs)
+        M2_mean = np.mean(M2_T_runs)
 
         ### Calculating heat capacity and magnetic susceptibility 
-        C = (E_squared_mean - (E_mean ** 2)) / (T ** 2)
-        X = (M_squared_mean - (M_mean ** 2)) / (T ** 2)
+        C = (E2_mean - (E_mean ** 2)) / (T ** 2)
+        X = (M2_mean - (M_mean ** 2)) / (T ** 2)
 
         ### Store the different observables
         energy_values.append(E_mean)
@@ -91,12 +103,13 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13):
         magnetic_susceptibility.append(X)
 
     return { 
-    'energy': energy_values, 
-    'magnetisation': magnetisation_values,
-    'heat_capacity': heat_capacity, 
-    'susceptibility': magnetic_susceptibility
+        'energy': energy_values, 
+        'magnetisation': magnetisation_values,
+        'heat_capacity': heat_capacity, 
+        'susceptibility': magnetic_susceptibility
     }
 
+### Define a function for plotting the simulation results
 def plot_observable(simulation_results, T_values, observable_key, ylabel, title, logscale=False):
     plt.figure(figsize=(8, 6))
     for L, result in simulation_results.items():
@@ -111,19 +124,15 @@ def plot_observable(simulation_results, T_values, observable_key, ylabel, title,
     plt.tight_layout()
     plt.show()
 
-# ============================
-# === RUNNING THE SIMULATIONS ===
-# ============================
+### Running the simulation
 simulation_results = {}
 
 for L in lattice_sizes:
     print(f"\nRunning simulation for lattice size L = {L}...")
-    results = run_simulation(L, T_values, MC_steps, equilibration_steps, seed=random_seed)
+    results = run_simulation(L, T_values, MC_steps, equilibration_steps, seed=random_seed, n_runs=n_runs)
     simulation_results[L] = results
 
-# ============================
-# === GENERATE OVERLAY PLOTS ===
-# ============================
+### Plotting overlays of the different lattice sizes 
 plot_observable(simulation_results, T_values, 'magnetisation', 
                 "Average Magnetisation per Spin ⟨|M|⟩", 
                 "Magnetisation vs. Temperature")

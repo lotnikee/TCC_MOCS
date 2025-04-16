@@ -55,8 +55,8 @@ for T in T_values:
 
         top = lattice_L[(i - 1) % L, j]
         bottom = lattice_L[(i + 1) % L, j]
-        right = lattice_L[i, (j - 1) % L]
-        left = lattice_L[i, (j + 1) % L]
+        left = lattice_L[i, (j - 1) % L]
+        right = lattice_L[i, (j + 1) % L]
 
         neighbour_sum = top + bottom + left + right 
         delta_E_j = 2 * current_state * neighbour_sum  # corrected factor of 2
