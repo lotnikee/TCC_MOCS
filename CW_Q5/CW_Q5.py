@@ -45,7 +45,7 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
         return energy_j
     
     ### Code a progress bar per temperature value to estimate how long the simulation is going to take
-    for T in tqdm(T_values, desc=f"Simulating L = {L}", leave=False):
+    for T in tqdm(T_values, desc=f"Simulating L = {L}"):
         E_T_runs , M_T_runs, E2_T_runs, M2_T_runs = [], [], [], []
 
         for run in range(n_runs):
