@@ -28,10 +28,6 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
     magnetisation_values = []
     heat_capacity = []
     magnetic_susceptibility = []
-    energy_stds = []
-    magnetisation_stds = []
-    heat_capacity_stds = []
-    magnetic_susceptibility_stds = []
 
     ### Define calculation of the lattice energy, avoiding double counting
     def calculate_energy(lattice_L):
@@ -46,7 +42,8 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
     
     ### Code a progress bar per temperature value to estimate how long the simulation is going to take
     for T in tqdm(T_values, desc=f"Simulating L = {L}", dynamic_ncols=True):
-        E_T_runs , M_T_runs, E2_T_runs, M2_T_runs = [], [], [], []
+        all_energy_samples = []
+        all_magnetisation_samples = []
 
         for run in range(n_runs):
             run_seed = seed + run
@@ -56,9 +53,6 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
             ### Initialise random spin configuration on the lattice
             lattice_L = np.random.choice([-1, 1], size =(L, L))
             E_j = calculate_energy(lattice_L)
-
-            energy_list_T = []
-            magnetisation_list_T = []
 
             N_steps = (MC_steps + equilibration_steps) * N
 
@@ -83,29 +77,23 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
 
                 ### Only append lists when outside of equilibration steps
                 if step > (equilibration_steps * L * L) and step % sample_interval == 0:
-                    energy_list_T.append(E_j)
+                    all_energy_samples.append(E_j / N)
                     M = np.sum(lattice_L)
-                    magnetisation_list_T.append(np.abs(M))
+                    all_magnetisation_samples.append(np.abs(M) / N)
 
-            ### Normalise everything per spin 
-            energy_array = np.array(energy_list_T) / N
-            magnetisation_array = np.array(magnetisation_list_T) / N 
-
-            ### Append empty run lists with average energy and magnetisation normalised per spin
-            E_T_runs.append(np.mean(energy_array))
-            E2_T_runs.append(np.mean(energy_array ** 2))
-            M_T_runs.append(np.mean(magnetisation_array))
-            M2_T_runs.append(np.mean(magnetisation_array ** 2))
+            ### Convert to arrays 
+            energy_array = np.array(all_energy_samples) 
+            magnetisation_array = np.array(all_magnetisation_samples) 
 
         ### Calculating energy and magnetisation values
-        E_mean = np.mean(E_T_runs)
-        E2_mean = np.mean(E2_T_runs)
-        M_mean = np.mean(M2_T_runs)
-        M2_mean = np.mean(M2_T_runs)
+        E_mean = np.mean(energy_array)
+        E2_mean = np.mean(energy_array ** 2)
+        M_mean = np.mean(magnetisation_array)
+        M2_mean = np.mean(magnetisation_array ** 2)
 
         ### Calculating heat capacity and magnetic susceptibility 
-        C = (E2_mean - (E_mean ** 2)) / (T ** 2)
-        X = (M2_mean - (M_mean ** 2)) / (T ** 2)
+        C = (E2_mean - E_mean ** 2) / (T ** 2)
+        X = (M2_mean - M_mean ** 2) / (T ** 2)
 
         ### Store the different observables
         energy_values.append(E_mean)
@@ -113,21 +101,11 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
         heat_capacity.append(C)
         magnetic_susceptibility.append(X)
 
-        ### Standard deviations for error bars (unbiased, sample standard deviatioin)
-        energy_stds.append(np.std(E_T_runs, ddof=1))
-        magnetisation_stds.append(np.std(M_T_runs, ddof=1))
-        heat_capacity_stds.append(np.std(E2_T_runs, ddof=1) / (T ** 2))
-        magnetic_susceptibility_stds.append(np.std(E2_T_runs, ddof=1) / (T ** 2))
-
     return { 
         'energy': energy_values, 
         'magnetisation': magnetisation_values,
         'heat_capacity': heat_capacity, 
-        'susceptibility': magnetic_susceptibility,
-        'energy_std': energy_stds,
-        'magnetisation_std': magnetisation_stds, 
-        'heat_capacity_std': heat_capacity_stds, 
-        'magnetic_susceptibility_std': magnetic_susceptibility_stds
+        'magnetic_susceptibility': magnetic_susceptibility,
     }
 
 ### Define a function for plotting the simulation results
@@ -135,8 +113,7 @@ def plot_observable(simulation_results, T_values, observable_key, ylabel, title,
     plt.figure(figsize=(8, 6))
     for L, result in simulation_results.items():
         y = result[observable_key]
-        yerr = result.get(observable_key + '_std', None)
-        plt.errorbar(T_values, y, yerr=yerr, label=f"L = {L}", capsize=3, fmt='-o', markersize=3)
+        plt.plot(T_values, y, label=f"L = {L}")
     plt.xlabel("Temperature, T")
     plt.ylabel(ylabel)
     plt.title(title)
@@ -146,6 +123,17 @@ def plot_observable(simulation_results, T_values, observable_key, ylabel, title,
     plt.legend()
     plt.tight_layout()
     plt.show()
+
+### Define a function that will estimate the transition temperature
+def print_Tc_estimates(simulation_results, T_values):
+    print("\nEstimated Transition Temperatures (T_c):\n")
+    for L, results in simulation_results.items():
+        chi = np.array(results['magnetic_susceptibility'])
+        C = np.array(results['heat_capacity'])
+        Tc_chi = T_values[np.argmax(chi)]
+        Tc_C = T_values[np.argmax(C)]
+        print(f"L = {L}:  T_c from χ(T) = {Tc_chi:.3f},  T_c from C(T) = {Tc_C:.3f}")
+
 
 ### Running the simulation
 simulation_results = {}
@@ -165,7 +153,7 @@ plot_observable(simulation_results, T_values, 'heat_capacity',
                 "Heat Capacity vs. Temperature", 
                 logscale=True)
 
-plot_observable(simulation_results, T_values, 'susceptibility', 
+plot_observable(simulation_results, T_values, 'magnetic_susceptibility', 
                 "Magnetic Susceptibility per Spin, χ", 
                 "Magnetic Susceptibility vs. Temperature", 
                 logscale=True)
@@ -173,3 +161,6 @@ plot_observable(simulation_results, T_values, 'susceptibility',
 plot_observable(simulation_results, T_values, 'energy', 
                 "Mean Energy per Spin ⟨E⟩", 
                 "Energy vs. Temperature")
+
+### Print transition temperatures
+print_Tc_estimates(simulation_results, T_values)
