@@ -45,7 +45,7 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
         return energy_j
     
     ### Code a progress bar per temperature value to estimate how long the simulation is going to take
-    for T in tqdm(T_values, desc=f"Simulating L = {L}"):
+    for T in tqdm(T_values, desc=f"Simulating L = {L}", dynamic_ncols=True):
         E_T_runs , M_T_runs, E2_T_runs, M2_T_runs = [], [], [], []
 
         for run in range(n_runs):
@@ -150,7 +150,7 @@ def plot_observable(simulation_results, T_values, observable_key, ylabel, title,
 ### Running the simulation
 simulation_results = {}
 
-for L in lattice_sizes:
+for L in tqdm(lattice_sizes, desc="Lattice sizes", dynamic_ncols=True):
     print(f"\nRunning simulation for lattice size L = {L}...")
     results = run_simulation(L, T_values, MC_steps, equilibration_steps, seed=random_seed, n_runs=n_runs)
     simulation_results[L] = results
