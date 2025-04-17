@@ -5,11 +5,18 @@ from tqdm import tqdm
 
 ### Simulation parameters
 lattice_sizes = [20, 40, 60]
-T_values = np.linspace(1.5, 3.5, 100)
-MC_steps = 5000
+MC_steps = 8000
 equilibration_steps = 1000
 random_seed = 13
 n_runs = 2
+
+### Fine resolution near the critical temperature at zero field 
+T_core = np.linspace(2.0, 2.6, 50)
+### Broader sampling on either side of the critical temperature at zero field 
+T_low = np.linspace(1.5, 2.0, 10, endpoint=False)
+T_high = np.linspace(2.6, 3.5, 10, endpoint=False)
+### Combine the regions 
+T_values = np.concatenate((T_low, T_core, T_high))
 
 ### Define a simulation function 
 def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1):
@@ -21,6 +28,10 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
     magnetisation_values = []
     heat_capacity = []
     magnetic_susceptibility = []
+    energy_stds = []
+    magnetisation_stds = []
+    heat_capacity_stds = []
+    magnetic_susceptibility_stds = []
 
     ### Define calculation of the lattice energy, avoiding double counting
     def calculate_energy(lattice_L):
@@ -102,18 +113,30 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
         heat_capacity.append(C)
         magnetic_susceptibility.append(X)
 
+        ### Standard deviations for error bars (unbiased, sample standard deviatioin)
+        energy_stds.append(np.std(E_T_runs, ddof=1))
+        magnetisation_stds.append(np.std(M_T_runs, ddof=1))
+        heat_capacity_stds.append(np.std(E2_T_runs, ddof=1) / (T ** 2))
+        magnetic_susceptibility_stds.append(np.std(E2_T_runs, ddof=1) / (T ** 2))
+
     return { 
         'energy': energy_values, 
         'magnetisation': magnetisation_values,
         'heat_capacity': heat_capacity, 
-        'susceptibility': magnetic_susceptibility
+        'susceptibility': magnetic_susceptibility,
+        'energy_std': energy_stds,
+        'magnetisation_std': magnetisation_stds, 
+        'heat_capacity_std': heat_capacity_stds, 
+        'magnetic_susceptibility_std': magnetic_susceptibility_stds
     }
 
 ### Define a function for plotting the simulation results
 def plot_observable(simulation_results, T_values, observable_key, ylabel, title, logscale=False):
     plt.figure(figsize=(8, 6))
     for L, result in simulation_results.items():
-        plt.plot(T_values, result[observable_key], label=f"L = {L}")
+        y = result[observable_key]
+        yerr = result.get(observable_key + '_std', None)
+        plt.errorbar(T_values, y, yerr=yerr, label=f"L = {L}", capsize=3, fmt='-o', markersize=3)
     plt.xlabel("Temperature, T")
     plt.ylabel(ylabel)
     plt.title(title)
