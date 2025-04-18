@@ -81,9 +81,9 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
                     M = np.sum(lattice_L)
                     all_magnetisation_samples.append(np.abs(M) / N)
 
-            ### Convert to arrays 
-            energy_array = np.array(all_energy_samples) 
-            magnetisation_array = np.array(all_magnetisation_samples) 
+        ### Convert to arrays 
+        energy_array = np.array(all_energy_samples) 
+        magnetisation_array = np.array(all_magnetisation_samples) 
 
         ### Calculating energy and magnetisation values
         E_mean = np.mean(energy_array)
@@ -164,3 +164,9 @@ plot_observable(simulation_results, T_values, 'energy',
 
 ### Print transition temperatures
 print_Tc_estimates(simulation_results, T_values)
+
+# Save simulation data for later analysis
+np.savez_compressed("ising_simulation_results.npz", 
+                    simulation_results=simulation_results, 
+                    T_values=T_values)
+print("\nSimulation data saved to 'ising_simulation_results.npz'")
