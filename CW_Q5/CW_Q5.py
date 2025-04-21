@@ -1,25 +1,30 @@
 import numpy as np 
-import matplotlib.pyplot as plt 
 import random 
 from tqdm import tqdm 
+import multiprocessing as mp 
 
-### Simulation parameters
-lattice_sizes = [20, 40, 60]
-MC_steps = 8000
-equilibration_steps = 1000
-random_seed = 13
-n_runs = 2
-
-### Fine resolution near the critical temperature at zero field 
+### Temperature range for sampling around the critical temperature
 T_core = np.linspace(2.0, 2.6, 50)
-### Broader sampling on either side of the critical temperature at zero field 
 T_low = np.linspace(1.5, 2.0, 10, endpoint=False)
 T_high = np.linspace(2.6, 3.5, 10, endpoint=False)
-### Combine the regions 
 T_values = np.concatenate((T_low, T_core, T_high))
 
 ### Define a simulation function 
-def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1):
+def run_simulation(L, T_values, seed=13):
+    ### Choose simulation parameters based on the lattice size 
+    if L == 20: 
+        MC_steps = 8000
+        equilibration_steps = 1000
+        n_runs = 2
+    elif L == 40: 
+        MC_steps = 12000
+        equilibration_steps = 2000
+        n_runs = 3
+    else:
+        MC_steps = 15000
+        equilibration_steps = 3000
+        n_runs = 3
+
     sample_interval = L * L
     N = L * L
 
@@ -53,7 +58,6 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
             ### Initialise random spin configuration on the lattice
             lattice_L = np.random.choice([-1, 1], size =(L, L))
             E_j = calculate_energy(lattice_L)
-
             N_steps = (MC_steps + equilibration_steps) * N
 
             ### Build a random lattice 
@@ -108,22 +112,6 @@ def run_simulation(L, T_values, MC_steps, equilibration_steps, seed=13, n_runs=1
         'magnetic_susceptibility': magnetic_susceptibility,
     }
 
-### Define a function for plotting the simulation results
-def plot_observable(simulation_results, T_values, observable_key, ylabel, title, logscale=False):
-    plt.figure(figsize=(8, 6))
-    for L, result in simulation_results.items():
-        y = result[observable_key]
-        plt.plot(T_values, y, label=f"L = {L}")
-    plt.xlabel("Temperature, T")
-    plt.ylabel(ylabel)
-    plt.title(title)
-    if logscale:
-        plt.xscale("log")
-    plt.grid(True, linestyle="--", linewidth=0.5)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
-
 ### Define a function that will estimate the transition temperature
 def print_Tc_estimates(simulation_results, T_values):
     print("\nEstimated Transition Temperatures (T_c):\n")
@@ -134,39 +122,24 @@ def print_Tc_estimates(simulation_results, T_values):
         Tc_C = T_values[np.argmax(C)]
         print(f"L = {L}:  T_c from χ(T) = {Tc_chi:.3f},  T_c from C(T) = {Tc_C:.3f}")
 
-
-### Running the simulation
-simulation_results = {}
-
-for L in tqdm(lattice_sizes, desc="Lattice sizes", dynamic_ncols=True):
+### Function for running simulations in parallel 
+def run_single_L(L):
     print(f"\nRunning simulation for lattice size L = {L}...")
-    results = run_simulation(L, T_values, MC_steps, equilibration_steps, seed=random_seed, n_runs=n_runs)
-    simulation_results[L] = results
+    results = run_simulation(L, T_values, seed=13)
+    return (L, results)
 
-### Plotting overlays of the different lattice sizes 
-plot_observable(simulation_results, T_values, 'magnetisation', 
-                "Average Magnetisation per Spin ⟨|M|⟩", 
-                "Magnetisation vs. Temperature")
+### Execution 
+if __name__ == '__main__': 
+    lattice_sizes = [20, 40, 60]
 
-plot_observable(simulation_results, T_values, 'heat_capacity', 
-                "Heat Capacity per Spin, C", 
-                "Heat Capacity vs. Temperature", 
-                logscale=True)
+    with mp.Pool(processes=len(lattice_sizes)) as pool:
+        output = list(tqdm(pool.imap(run_single_L, lattice_sizes), total=len(lattice_sizes)))
+    
+    simulation_results = dict(output)
 
-plot_observable(simulation_results, T_values, 'magnetic_susceptibility', 
-                "Magnetic Susceptibility per Spin, χ", 
-                "Magnetic Susceptibility vs. Temperature", 
-                logscale=True)
-
-plot_observable(simulation_results, T_values, 'energy', 
-                "Mean Energy per Spin ⟨E⟩", 
-                "Energy vs. Temperature")
-
-### Print transition temperatures
-print_Tc_estimates(simulation_results, T_values)
-
-# Save simulation data for later analysis
-np.savez_compressed("ising_simulation_results.npz", 
+    # Save simulation data for later analysis
+    np.savez_compressed("ising_simulation_results.npz", 
                     simulation_results=simulation_results, 
                     T_values=T_values)
-print("\nSimulation data saved to 'ising_simulation_results.npz'")
+    print("\nSimulation data saved to 'ising_simulation_results.npz'")
+
