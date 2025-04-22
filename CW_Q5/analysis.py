@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import savgol_filter
 
 # === Load simulation data ===
-data = np.load("ising_simulation_results.npz", allow_pickle=True)
+data = np.load("optimised_simulation_results.npz", allow_pickle=True)
 simulation_results = data['simulation_results'].item()
 T_values = data['T_values']
 
@@ -14,21 +14,23 @@ def estimate_Tc_all_methods(sim_results, T_vals):
         chi = np.array(results['magnetic_susceptibility'])
         C = np.array(results['heat_capacity'])
 
+        # Apply smoothing
+        chi_smooth = savgol_filter(chi, window_length=7, polyorder=3)
+        C_smooth = savgol_filter(C, window_length=7, polyorder=3)
+
         # 1. Maximum value method
-        Tc_chi_max = T_vals[np.argmax(chi)]
-        Tc_C_max = T_vals[np.argmax(C)]
+        Tc_chi_max = T_vals[np.argmax(chi_smooth)]
+        Tc_C_max = T_vals[np.argmax(C_smooth)]
 
         # 2. Gradient (steepest slope)
-        dchi_dT = np.abs(np.gradient(chi, T_vals))
-        dC_dT = np.abs(np.gradient(C, T_vals))
+        dchi_dT = np.abs(np.gradient(chi_smooth, T_vals))
+        dC_dT = np.abs(np.gradient(C_smooth, T_vals))
         Tc_chi_grad = T_vals[np.argmax(dchi_dT)]
         Tc_C_grad = T_vals[np.argmax(dC_dT)]
 
-        # 3. Curvature (second derivative after smoothing)
-        chi_smooth = savgol_filter(chi, window_length=7, polyorder=3)
-        C_smooth = savgol_filter(C, window_length=7, polyorder=3)
-        d2chi_dT2 = np.abs(np.gradient(np.gradient(chi_smooth, T_vals), T_vals))
-        d2C_dT2 = np.abs(np.gradient(np.gradient(C_smooth, T_vals), T_vals))
+        # 3. Curvature (second derivative)
+        d2chi_dT2 = np.abs(np.gradient(dchi_dT, T_vals))
+        d2C_dT2 = np.abs(np.gradient(dC_dT, T_vals))
         Tc_chi_curve = T_vals[np.argmax(d2chi_dT2)]
         Tc_C_curve = T_vals[np.argmax(d2C_dT2)]
 
@@ -62,7 +64,12 @@ def plot_all_observables(sim_results, T_vals):
     for idx, key in enumerate(labels):
         ax = axs[idx]
         for L, results in sim_results.items():
-            ax.plot(T_vals, results[key], label=f"L = {L}")
+            y_raw = np.array(results[key])
+            if key in ['heat_capacity', 'magnetic_susceptibility']:
+                y = savgol_filter(y_raw, window_length=7, polyorder=3)
+            else:
+                y = y_raw
+            ax.plot(T_vals, y, label=f"L = {L}")
         ax.set_xlabel("Temperature, T")
         ax.set_ylabel(ylabels[idx])
         ax.set_title(titles[idx])
@@ -77,5 +84,3 @@ def plot_all_observables(sim_results, T_vals):
 # === Run analysis ===
 estimate_Tc_all_methods(simulation_results, T_values)
 plot_all_observables(simulation_results, T_values)
-
-
